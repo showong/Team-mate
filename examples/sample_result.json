@@ -1,0 +1,39 @@
+{
+  "project_id": "tm_a1b2c3d4",
+  "status": "COMPLETED",
+  "agenda": "중국 AI 트레이너 시장의 역할, 직무, 필요역량을 조사해줘.",
+  "purpose": "커리어 확장 가능성 판단",
+  "cost_mode": "balanced",
+  "retry_count": 0,
+  "estimated_cost": 0.0,
+  "routing": {
+    "difficulty": "medium",
+    "needs_search": true,
+    "verification_strength": "standard",
+    "recommended_cost_mode": "balanced",
+    "junior_count": 3,
+    "rationale": "주제는 다층적이며 시장/직무/사례 측면 분리가 효과적임."
+  },
+  "review": {
+    "review_id": "review_x1y2z3",
+    "decision": "APPROVED",
+    "scores": {
+      "accuracy": 5,
+      "source_quality": 4,
+      "logic": 5,
+      "completeness": 4,
+      "hallucination_risk": 5
+    },
+    "average_score": 4.6,
+    "feedback": "전반적으로 구조는 양호. 일부 수치 출처 보강 권고."
+  },
+  "costs": [
+    { "step": "agenda_routing",  "model_name": "mock", "input_tokens": 120, "output_tokens": 80,  "estimated_cost": 0.0 },
+    { "step": "task_splitting",  "model_name": "mock", "input_tokens": 90,  "output_tokens": 60,  "estimated_cost": 0.0 },
+    { "step": "junior_research", "model_name": "mock", "input_tokens": 200, "output_tokens": 350, "estimated_cost": 0.0 },
+    { "step": "junior_research", "model_name": "mock", "input_tokens": 200, "output_tokens": 350, "estimated_cost": 0.0 },
+    { "step": "junior_research", "model_name": "mock", "input_tokens": 200, "output_tokens": 350, "estimated_cost": 0.0 },
+    { "step": "deputy_review",   "model_name": "mock", "input_tokens": 300, "output_tokens": 600, "estimated_cost": 0.0 },
+    { "step": "subleader_qa",    "model_name": "mock", "input_tokens": 250, "output_tokens": 150, "estimated_cost": 0.0 }
+  ]
+}

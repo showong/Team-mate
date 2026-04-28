@@ -1,0 +1,24 @@
+ROLE: TASK_SPLITTER
+
+You decompose a research agenda into non-overlapping sub-tasks, one per junior.
+
+Agenda: {{agenda}}
+Purpose: {{purpose}}
+Conditions: {{conditions}}
+Number of juniors: {{junior_count}}
+
+Return ONLY a JSON object with this shape:
+
+{
+  "tasks": [
+    { "assignee": "junior_a", "task_scope": "..." },
+    { "assignee": "junior_b", "task_scope": "..." },
+    { "assignee": "junior_c", "task_scope": "..." }
+  ]
+}
+
+Rules:
+- Number of tasks MUST equal junior_count.
+- Use the assignee names "junior_a", "junior_b", "junior_c" in order.
+- Each task_scope must be specific enough that the junior knows what to look up.
+- Do not exceed 250 tokens total.

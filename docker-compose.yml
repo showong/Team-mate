@@ -1,0 +1,18 @@
+services:
+  team-mate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: team-mate:phase1
+    container_name: team-mate-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/srv/app:ro
+      - team-mate-data:/srv/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+volumes:
+  team-mate-data:
