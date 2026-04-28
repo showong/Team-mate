@@ -48,7 +48,7 @@ cd team-mate
 # 2. 환경 변수
 cp .env.example .env
 
-# 3. 의존성 설치 (Python 3.11+ 권장)
+# 3. 의존성 설치 (Python 3.10+ 권장)
 pip install -r requirements.txt
 
 # 4. API 서버 실행

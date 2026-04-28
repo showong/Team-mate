@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 from app.config import Settings, get_settings
 from app.core.cost_tracker import CostTracker
@@ -25,7 +25,7 @@ class BaseAgent:
         self,
         llm: BaseLLMClient,
         cost_tracker: CostTracker,
-        settings: Settings | None = None,
+        settings: Optional[Settings] = None,
     ) -> None:
         self._llm = llm
         self._cost = cost_tracker

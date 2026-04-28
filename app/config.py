@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -18,9 +19,9 @@ class Settings(BaseSettings):
     llm_model_subleader: str = Field(default="high", alias="LLM_MODEL_SUBLEADER")
     llm_model_router: str = Field(default="low_cost", alias="LLM_MODEL_ROUTER")
 
-    openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
-    anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
-    gemini_api_key: str | None = Field(default=None, alias="GEMINI_API_KEY")
+    openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
+    anthropic_api_key: Optional[str] = Field(default=None, alias="ANTHROPIC_API_KEY")
+    gemini_api_key: Optional[str] = Field(default=None, alias="GEMINI_API_KEY")
 
     # Storage
     database_url: str = Field(default="sqlite:///./team_mate.db", alias="DATABASE_URL")

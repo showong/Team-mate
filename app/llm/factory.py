@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from app.config import Settings, get_settings
 from app.llm.base_client import BaseLLMClient
 from app.llm.mock_client import MockLLMClient
 
 
-def build_llm_client(settings: Settings | None = None) -> BaseLLMClient:
+def build_llm_client(settings: Optional[Settings] = None) -> BaseLLMClient:
     settings = settings or get_settings()
     provider = settings.llm_provider.lower()
 

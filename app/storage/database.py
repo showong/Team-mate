@@ -10,11 +10,12 @@ each repository wrap a session, while keeping the same public methods.
 from __future__ import annotations
 
 from threading import Lock
+from typing import Optional
 
 from app.storage.repositories import Repositories
 
 
-_singleton: Repositories | None = None
+_singleton: Optional[Repositories] = None
 _lock = Lock()
 
 
