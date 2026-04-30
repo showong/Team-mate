@@ -26,10 +26,13 @@ class BaseAgent:
         llm: BaseLLMClient,
         cost_tracker: CostTracker,
         settings: Optional[Settings] = None,
+        *,
+        model_override: Optional[str] = None,
     ) -> None:
         self._llm = llm
         self._cost = cost_tracker
         self._settings = settings or get_settings()
+        self._model_override = model_override
 
     # ----- prompt -----
 
@@ -42,7 +45,10 @@ class BaseAgent:
     # ----- llm call -----
 
     def _model_for_role(self) -> str:
-        # Subclasses can override `model_setting` to pick a per-role model.
+        # 인스턴스 단위 override가 우선
+        if self._model_override:
+            return self._model_override
+        # 그 다음 Settings 의 model_setting 필드를 읽음
         return getattr(self._settings, self.model_setting, "mid")
 
     model_setting: str = "llm_model_deputy"

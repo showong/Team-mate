@@ -71,21 +71,57 @@ class Orchestrator:
         repos: Optional[Repositories] = None,
         llm: Optional[BaseLLMClient] = None,
         settings: Optional[Settings] = None,
+        *,
+        model_overrides: Optional[dict] = None,
     ) -> None:
+        """
+        model_overrides: 역할/주임별 모델명 매핑 (예: ``{
+            "router":    "claude-haiku-4-5-20251001",
+            "splitter":  "claude-haiku-4-5-20251001",
+            "junior_a":  "claude-haiku-4-5-20251001",
+            "junior_b":  "gpt-4o-mini",
+            "junior_c":  "gemini-1.5-flash",
+            "deputy":    "claude-sonnet-4-6",
+            "subleader": "claude-opus-4-7",
+        }``).
+        값이 비어 있으면 Settings 의 기본 model_setting 을 사용한다.
+        """
         self._settings = settings or get_settings()
         self._repos = repos or get_repositories()
         self._llm = llm or build_llm_client(self._settings)
         self._cost = CostTracker(self._repos)
+        self._model_overrides = model_overrides or {}
 
-        self._router = AgendaRouter(self._llm, self._cost, self._settings)
-        self._splitter = TaskSplitter(self._llm, self._cost, self._settings)
-        self._junior = JuniorAgent(self._llm, self._cost, self._settings)
-        self._deputy = DeputyAgent(self._llm, self._cost, self._settings)
-        self._subleader = SubleaderAgent(self._llm, self._cost, self._settings)
+        # 단일 인스턴스 agent (각 1회만 호출)
+        self._router = AgendaRouter(
+            self._llm, self._cost, self._settings,
+            model_override=self._model_overrides.get("router"),
+        )
+        self._splitter = TaskSplitter(
+            self._llm, self._cost, self._settings,
+            model_override=self._model_overrides.get("splitter"),
+        )
+        self._deputy = DeputyAgent(
+            self._llm, self._cost, self._settings,
+            model_override=self._model_overrides.get("deputy"),
+        )
+        self._subleader = SubleaderAgent(
+            self._llm, self._cost, self._settings,
+            model_override=self._model_overrides.get("subleader"),
+        )
 
+        # 주임은 task.assignee 별로 다른 모델을 쓸 수 있어야 하므로
+        # _junior_for(assignee) 로 동적 생성한다.
         self._sources = SourceService()
         self._reports = ReportService()
         self._logs = LogService(self._repos)
+
+    def _junior_for(self, assignee: str) -> JuniorAgent:
+        """assignee(=주임 ID) 에 맞는 model_override 가 적용된 Junior agent."""
+        return JuniorAgent(
+            self._llm, self._cost, self._settings,
+            model_override=self._model_overrides.get(assignee),
+        )
 
     # ----- public API -----
 
@@ -253,7 +289,8 @@ class Orchestrator:
             task.status = TaskStatus.RUNNING
             self._repos.tasks.save(task)
 
-            output = self._junior.run(project, task, source_material=source_material or None)
+            agent = self._junior_for(task.assignee)
+            output = agent.run(project, task, source_material=source_material or None)
             self._repos.outputs.save_junior(output)
 
             task.status = TaskStatus.SUBMITTED
@@ -292,7 +329,8 @@ class Orchestrator:
             task.notes = target.reason
             self._repos.tasks.save(task)
 
-            output = self._junior.run(project, task, source_material=source_material or None)
+            agent = self._junior_for(task.assignee)
+            output = agent.run(project, task, source_material=source_material or None)
             self._repos.outputs.save_junior(output)
             by_assignee[task.assignee] = output
 

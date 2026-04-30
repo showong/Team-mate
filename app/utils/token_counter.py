@@ -35,6 +35,10 @@ DEFAULT_PRICES = {
     "claude-haiku-4-5-20251001": (0.25, 1.25),
     "claude-sonnet-4-6": (3.00, 15.00),
     "claude-opus-4-7": (15.00, 75.00),
+    # Google Gemini examples
+    "gemini-1.5-flash": (0.075, 0.30),
+    "gemini-1.5-pro":   (1.25, 5.00),
+    "gemini-2.0-flash": (0.10, 0.40),
 }
 
 

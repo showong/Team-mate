@@ -26,9 +26,39 @@ st.set_page_config(
 
 from app.core.orchestrator import Orchestrator
 from app.llm.mock_client import MockLLMClient
+from app.llm.multi_provider_client import MultiProviderLLMClient
 from app.schemas import ProjectCreate
 from app.schemas.project import CostMode, OutputLength, VerificationLevel
 from app.storage.database import get_repositories, reset_repositories
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Provider × 모델 카탈로그
+# ═══════════════════════════════════════════════════════════════════════════════
+# 주임용 (가성비) — 각 provider 의 저비용 모델
+JUNIOR_MODELS = {
+    "Anthropic": ["claude-haiku-4-5-20251001"],
+    "OpenAI":    ["gpt-4o-mini"],
+    "Gemini":    ["gemini-1.5-flash", "gemini-2.0-flash"],
+    "Mock":      ["mock"],
+}
+
+# 대리·부팀장용 (고사양) — 각 provider 의 플래그십 모델
+HIGH_END_MODELS = {
+    "Anthropic": ["claude-sonnet-4-6", "claude-opus-4-7"],
+    "OpenAI":    ["gpt-4o", "o1-mini"],
+    "Gemini":    ["gemini-1.5-pro"],
+    "Mock":      ["mock"],
+}
+
+# 사용자 요청 기본값 — 주임 A/B/C 가 각각 Anthropic/OpenAI/Gemini
+DEFAULTS = {
+    "junior_a": ("Anthropic", "claude-haiku-4-5-20251001"),
+    "junior_b": ("OpenAI",    "gpt-4o-mini"),
+    "junior_c": ("Gemini",    "gemini-1.5-flash"),
+    "deputy":   ("Anthropic", "claude-sonnet-4-6"),
+    "subleader":("Anthropic", "claude-opus-4-7"),
+}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -218,13 +248,61 @@ with st.sidebar:
         [o.value for o in OutputLength], index=1)
 
     st.divider()
-    provider = st.selectbox("LLM Provider",
-        ["mock", "openai", "anthropic", "gemini", "local"], index=0)
-    api_key = ""
-    if provider != "mock":
-        api_key = st.text_input(f"{provider.upper()} API Key", type="password")
+    test_mode = st.toggle(
+        "🤖 Mock 모드 (모든 역할)",
+        value=True,
+        help="끄면 역할별로 실제 LLM 모델을 선택합니다.",
+    )
+
+    role_models: dict[str, str] = {}
+
+    if not test_mode:
+        st.markdown("**🔑 API Keys**")
+        with st.expander("API Key 입력", expanded=True):
+            openai_key    = st.text_input("OpenAI",    type="password",
+                                           placeholder="sk-...", key="openai_key")
+            anthropic_key = st.text_input("Anthropic", type="password",
+                                           placeholder="sk-ant-...", key="anthropic_key")
+            gemini_key    = st.text_input("Gemini",    type="password",
+                                           placeholder="AIza...", key="gemini_key")
+
+        st.markdown("**🎭 역할별 모델 선택**")
+
+        def _role_picker(label: str, role_key: str, catalog: dict) -> Optional[str]:
+            """provider + model 2단계 selector. 선택값을 model 이름으로 반환."""
+            default_provider, default_model = DEFAULTS[role_key]
+            providers = list(catalog.keys())
+            prov_idx = providers.index(default_provider) if default_provider in providers else 0
+
+            with st.container():
+                st.caption(label)
+                col_a, col_b = st.columns([1, 2])
+                with col_a:
+                    provider = st.selectbox(
+                        "Provider", providers, index=prov_idx,
+                        key=f"{role_key}_provider", label_visibility="collapsed",
+                    )
+                models = catalog[provider]
+                model_idx = models.index(default_model) if default_model in models else 0
+                with col_b:
+                    model = st.selectbox(
+                        "Model", models, index=model_idx,
+                        key=f"{role_key}_model", label_visibility="collapsed",
+                    )
+                return None if model == "mock" else model
+
+        role_models["junior_a"]  = _role_picker("👨‍💼 주임 A — 시장·배경",  "junior_a",  JUNIOR_MODELS)
+        role_models["junior_b"]  = _role_picker("👨‍💼 주임 B — 직무·역량",  "junior_b",  JUNIOR_MODELS)
+        role_models["junior_c"]  = _role_picker("👨‍💼 주임 C — 사례·적용",  "junior_c",  JUNIOR_MODELS)
+        role_models["deputy"]    = _role_picker("👩‍💼 대리 — 검토·통합",     "deputy",    HIGH_END_MODELS)
+        role_models["subleader"] = _role_picker("🧑‍💼 부팀장 — 품질검수",   "subleader", HIGH_END_MODELS)
+
+        # Router/Splitter 는 비용 절약 위해 mock 또는 가장 저렴한 주임 모델과 동일하게
+        role_models["router"]   = role_models["junior_a"]
+        role_models["splitter"] = role_models["junior_a"]
     else:
-        st.info("Mock 모드 — API Key 불필요", icon="🤖")
+        st.info("Mock 모드 — API Key 불필요. 모든 역할이 동일한 mock 응답을 반환합니다.", icon="🤖")
+        openai_key = anthropic_key = gemini_key = ""
 
     st.divider()
     if st.button("🗑️ 미팅 초기화", use_container_width=True):
@@ -541,22 +619,57 @@ if submitted:
         output_length=OutputLength(output_length),
     )
 
-    if provider == "mock":
+    # ---- LLM 클라이언트 + 역할별 모델 매핑 ----
+    if test_mode:
         llm = MockLLMClient()
+        active_overrides: dict = {}
     else:
+        # 선택된 모델들 중 실제로 어떤 provider 가 사용되는지 검증
+        used_providers: set = set()
+        for v in role_models.values():
+            if not v:
+                continue
+            if v.startswith("claude-"):
+                used_providers.add("anthropic")
+            elif v.startswith("gpt-") or v.startswith("o1-") or v.startswith("o3-"):
+                used_providers.add("openai")
+            elif v.startswith("gemini-"):
+                used_providers.add("gemini")
+
+        # 사용 provider 의 키가 비어있으면 경고
+        missing = []
+        if "openai" in used_providers and not openai_key:
+            missing.append("OpenAI")
+        if "anthropic" in used_providers and not anthropic_key:
+            missing.append("Anthropic")
+        if "gemini" in used_providers and not gemini_key:
+            missing.append("Gemini")
+        if missing:
+            st.error(
+                f"선택한 모델이 다음 provider를 사용하는데 API Key가 비어있습니다: "
+                f"{', '.join(missing)}. 미입력 provider는 자동으로 Mock으로 대체됩니다."
+            )
+
         try:
-            import os
-            os.environ[f"{provider.upper()}_API_KEY"] = api_key
-            from app.config import Settings
-            from app.llm.factory import build_llm_client
-            s = Settings(**{f"{provider}_api_key": api_key, "llm_provider": provider})
-            llm = build_llm_client(s)
+            llm = MultiProviderLLMClient(
+                openai_api_key=openai_key or None,
+                anthropic_api_key=anthropic_key or None,
+                gemini_api_key=gemini_key or None,
+                fallback_to_mock=True,
+            )
         except Exception as e:
             st.error(f"LLM 초기화 실패: {e}")
             st.stop()
 
+        # 빈 값(None) 제거
+        active_overrides = {k: v for k, v in role_models.items() if v}
+
     repos = get_repositories()
-    orch  = Orchestrator(repos=repos, llm=llm)
+    orch  = Orchestrator(
+        repos=repos,
+        llm=llm,
+        model_overrides=active_overrides if active_overrides else None,
+    )
 
     with st.spinner("백그라운드에서 미팅 준비 중..."):
         project = orch.create_project(payload)
