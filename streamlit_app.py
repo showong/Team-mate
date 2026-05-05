@@ -37,27 +37,27 @@ from app.storage.database import get_repositories, reset_repositories
 # ═══════════════════════════════════════════════════════════════════════════════
 # 주임용 (가성비) — 각 provider 의 저비용 모델
 JUNIOR_MODELS = {
-    "Anthropic": ["claude-haiku-4-5-20251001"],
-    "OpenAI":    ["gpt-4o-mini"],
-    "Gemini":    ["gemini-1.5-flash", "gemini-2.0-flash"],
+    "Anthropic": ["claude-haiku-4-5-20251001", "claude-sonnet-4-6"],
+    "OpenAI":    ["gpt-4o-mini", "gpt-5.4-nano-2026-03-17"],
+    "Gemini":    ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-3.1-flash-lite-preview"],
     "Mock":      ["mock"],
 }
 
 # 대리·부팀장용 (고사양) — 각 provider 의 플래그십 모델
 HIGH_END_MODELS = {
     "Anthropic": ["claude-sonnet-4-6", "claude-opus-4-7"],
-    "OpenAI":    ["gpt-4o", "o1-mini"],
+    "OpenAI":    ["gpt-4o", "o1-mini", "gpt-5.4-2026-03-05"],
     "Gemini":    ["gemini-1.5-pro"],
     "Mock":      ["mock"],
 }
 
-# 사용자 요청 기본값 — 주임 A/B/C 가 각각 Anthropic/OpenAI/Gemini
+# 사용자 지정 기본값
 DEFAULTS = {
-    "junior_a": ("Anthropic", "claude-haiku-4-5-20251001"),
-    "junior_b": ("OpenAI",    "gpt-4o-mini"),
-    "junior_c": ("Gemini",    "gemini-1.5-flash"),
-    "deputy":   ("Anthropic", "claude-sonnet-4-6"),
-    "subleader":("Anthropic", "claude-opus-4-7"),
+    "junior_a":  ("Gemini",    "gemini-3.1-flash-lite-preview"),
+    "junior_b":  ("OpenAI",    "gpt-5.4-nano-2026-03-17"),
+    "junior_c":  ("Anthropic", "claude-sonnet-4-6"),
+    "deputy":    ("OpenAI",    "gpt-5.4-2026-03-05"),
+    "subleader": ("Anthropic", "claude-opus-4-7"),
 }
 
 

@@ -31,6 +31,8 @@ DEFAULT_PRICES = {
     # OpenAI examples
     "gpt-4o-mini": (0.15, 0.60),
     "gpt-4o": (2.50, 10.00),
+    "gpt-5.4-nano-2026-03-17": (0.20, 0.80),
+    "gpt-5.4-2026-03-05":      (5.00, 20.00),
     # Anthropic examples
     "claude-haiku-4-5-20251001": (0.25, 1.25),
     "claude-sonnet-4-6": (3.00, 15.00),
@@ -39,6 +41,7 @@ DEFAULT_PRICES = {
     "gemini-1.5-flash": (0.075, 0.30),
     "gemini-1.5-pro":   (1.25, 5.00),
     "gemini-2.0-flash": (0.10, 0.40),
+    "gemini-3.1-flash-lite-preview": (0.05, 0.20),
 }
 
 
